@@ -1,15 +1,33 @@
 import { NextResponse } from 'next/server';
 
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
+
 export async function POST(request: Request) {
-    // 1. Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+        const body = await request.json() as { phone: string };
 
-    // 2. Read the body sent by LoginForm.tsx
-    const body = await request.json() as { phone: string };
+        const backendRes = await fetch(`${BACKEND_URL}/api/auth/send-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
 
-    // 3. In a real app, trigger Kavenegar or Twilio here.
-    console.log(`[MOCK SMS] OTP code is 12345 for phone: ${body.phone}`);
+        const data = await backendRes.json();
 
-    // 4. Send success response
-    return NextResponse.json({ success: true, message: 'OTP sent successfully.' });
+        if (!backendRes.ok) {
+            return NextResponse.json(
+                { message: data.message || 'Failed to send OTP' },
+                { status: backendRes.status }
+            );
+        }
+
+        return NextResponse.json(data);
+
+    } catch (error) {
+        console.error("Backend connection error:", error);
+        return NextResponse.json(
+            { message: 'Internal Server Error. Could not connect to backend.' },
+            { status: 500 }
+        );
+    }
 }
