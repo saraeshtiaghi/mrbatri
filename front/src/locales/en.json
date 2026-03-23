@@ -1,0 +1,26 @@
+{
+  "storeName": "BATRISTORE",
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "about": "About Us"
+  },
+  "sidebar": {
+    "categories": "Categories"
+  },
+  "seo": {
+    "loginTitle": "Login | BATRISTORE",
+    "loginDesc": "Sign in to your account to manage orders and checkout."
+  },
+  "checkout": {
+    "title": "Checkout",
+    "summary": "Order Summary",
+    "shipping": "Shipping Information",
+    "fullName": "Full Name",
+    "address": "Shipping Address",
+    "city": "City",
+    "placeOrder": "Place Order",
+    "items": "Items",
+    "total": "Total Amount"
+  }
+}

@@ -1,0 +1,44 @@
+services:
+  # 1. PostgreSQL - The Relational Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mrbatri-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: mrbatridb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # 2. Redis - For OTPs and fast caching
+  redis:
+    image: redis:7-alpine
+    container_name: mrbatri-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # 3. MinIO - Local S3-compatible Object Storage for Images
+  minio:
+    image: minio/minio:latest
+    container_name: mrbatri-minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: secretpassword
+    ports:
+      - "9000:9000" # API Port
+      - "9001:9001" # Web Console Port
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

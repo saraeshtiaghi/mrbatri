@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--sys-primary);
+  --color-primary-variant: var(--sys-primary-variant);
+  --color-on-primary: var(--sys-on-primary);
+
+  --color-secondary: var(--sys-secondary);
+  --color-on-secondary: var(--sys-on-secondary);
+
+  --color-background: var(--sys-background);
+  --color-on-background: var(--sys-on-background);
+
+  --color-surface: var(--sys-surface);
+  --color-surface-variant: var(--sys-surface-variant);
+  --color-on-surface: var(--sys-on-surface);
+  --color-on-surface-muted: var(--sys-on-surface-muted);
+
+  --color-outline: var(--sys-outline);
+
+  --color-error: var(--sys-error);
+  --color-success: var(--sys-success);
+
+  --font-sans: 'Vazirmatn', 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    --sys-primary: #2563eb;         /* Blue 600 */
+    --sys-primary-variant: #1d4ed8; /* Blue 700 (For hovers) */
+    --sys-on-primary: #ffffff;      /* White text on blue buttons */
+
+    /* Accent Colors */
+    --sys-secondary: #ea580c;       /* Orange 600 (For Sale badges) */
+    --sys-on-secondary: #ffffff;
+
+    /* Backgrounds */
+    --sys-background: #f8fafc;      /* Slate 50 (App background) */
+    --sys-on-background: #0f172a;   /* Slate 900 (Main text) */
+
+    /* Cards and Containers */
+    --sys-surface: #ffffff;         /* White (Product Cards, Sidebar) */
+    --sys-surface-variant: #f1f5f9; /* Slate 100 (Image backgrounds) */
+    --sys-on-surface: #0f172a;      /* Slate 900 (Card titles) */
+    --sys-on-surface-muted: #64748b;/* Slate 500 (Categories, subtitles) */
+
+    /* Borders */
+    --sys-outline: #e2e8f0;         /* Slate 200 */
+
+    /* Status */
+    --sys-error: #ef4444;           /* Red 500 */
+    --sys-success: #10b981;         /* Emerald 500 */
+
+    /* Apply base background and text color to the whole HTML document */
+    background-color: var(--sys-background);
+    color: var(--sys-on-background);
+  }
+
+  [data-mode="dark"] {
+    /* Brand Colors */
+    --sys-primary: #3b82f6;         /* Blue 500 (Slightly brighter for dark mode) */
+    --sys-primary-variant: #2563eb; /* Blue 600 */
+    --sys-on-primary: #ffffff;
+
+    /* Accent Colors */
+    --sys-secondary: #f97316;       /* Orange 500 */
+    --sys-on-secondary: #ffffff;
+
+    /* Backgrounds */
+    --sys-background: #0f172a;      /* Slate 900 (Very dark app background) */
+    --sys-on-background: #f8fafc;   /* Slate 50 (White main text) */
+
+    /* Cards and Containers */
+    --sys-surface: #1e293b;         /* Slate 800 (Dark Product Cards) */
+    --sys-surface-variant: #334155; /* Slate 700 (Slightly lighter inner containers) */
+    --sys-on-surface: #f8fafc;      /* Slate 50 (Card titles) */
+    --sys-on-surface-muted: #94a3b8;/* Slate 400 (Categories, subtitles) */
+
+    /* Borders */
+    --sys-outline: #334155;         /* Slate 700 */
+
+    /* Status */
+    --sys-error: #f87171;           /* Red 400 */
+    --sys-success: #34d399;         /* Emerald 400 */
+  }
+}

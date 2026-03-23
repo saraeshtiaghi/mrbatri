@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: mrbatri-backend
+
+  # 1. PostgreSQL Connection
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mrbatridb
+    username: admin
+    password: secretpassword
+    driver-class-name: org.postgresql.Driver
+
+  # 2. JPA / Hibernate Settings
+  jpa:
+    hibernate:
+      # 'update' will create/modify tables based on your Kotlin classes automatically.
+      # In production, we change this to 'none' and use migrations.
+      ddl-auto: update 
+    show-sql: true # Prints every SQL query to your console (great for learning)
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  # 3. Redis Connection (for your OTP logic)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# 4. Observability (Health & Metrics)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: always
