@@ -1,42 +1,38 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
-// Your Spring Boot backend URL
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json() as { phone: string; otp: string };
+        const body = await request.json();
 
-        // 1. Forward the request securely to Spring Boot
         const backendRes = await fetch(`${BACKEND_URL}/api/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         });
 
-        // 2. Parse the response from Kotlin
         const data = await backendRes.json();
 
-        // 3. Handle errors (e.g., wrong OTP)
         if (!backendRes.ok) {
-            return NextResponse.json(
-                { message: data.message || 'Invalid OTP Code' },
-                { status: backendRes.status }
-            );
+            return NextResponse.json({ message: data.message || 'Invalid OTP' }, { status: backendRes.status });
         }
 
-        // 4. Success! We pass the token and user data back to the React frontend.
-        // NOTE: Later, we will upgrade this to set an HttpOnly cookie instead of sending the token!
-        return NextResponse.json({
-            token: data.token,
-            user: data.user
+        // PRO UPGRADE: Set the HttpOnly Cookie
+        const cookieStore = await cookies();
+        cookieStore.set('jwt_token', data.token, {
+            httpOnly: true, // XSS protection
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+            path: '/',
         });
 
+        // Return ONLY the user data, not the token
+        return NextResponse.json({ user: data.user });
+
     } catch (error) {
-        console.error("Backend connection error:", error);
-        return NextResponse.json(
-            { message: 'Internal Server Error. Could not connect to backend.' },
-            { status: 500 }
-        );
+        return NextResponse.json({ message: 'Internal Server Error.' }, { status: 500 });
     }
 }

@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import type { Order, OrderStatus } from '@/lib/db';
 import OrderDetailsModal from '@/components/OrderDetailsModal';
-
-
+import { apiClient } from "@/lib/axios"; // <-- Import apiClient
 
 export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
@@ -13,13 +12,11 @@ export default function AdminOrdersPage() {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-    // Fetch Orders on mount
     const fetchOrders = async () => {
         try {
-            const response = await fetch('/api/orders');
-            if (!response.ok) throw new Error('Failed to fetch orders');
-            const data = await response.json();
-            setOrders(data);
+            // Using apiClient
+            const response = await apiClient.get('/orders');
+            setOrders(response.data);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -34,13 +31,8 @@ export default function AdminOrdersPage() {
     const handleStatusChange = async (id: string, newStatus: OrderStatus) => {
         setIsUpdating(id);
         try {
-            const response = await fetch(`/api/orders/${id}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus }),
-            });
-
-            if (!response.ok) throw new Error('Failed to update status');
+            // Using apiClient
+            await apiClient.put(`/orders/${id}/status`, { status: newStatus });
 
             // Instantly update local UI without a full refetch!
             setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
@@ -87,7 +79,7 @@ export default function AdminOrdersPage() {
                     <tbody className="divide-y divide-outline text-sm">
                     {orders.map((order) => (
                         <tr key={order.id} className="hover:bg-surface-variant/30 transition-colors">
-                            <td className="p-4 font-bold text-on-surface">#{order.id}</td>
+                            <td className="p-4 font-bold text-on-surface">#{order.id.substring(0, 8)}...</td>
                             <td className="p-4 font-medium" dir="ltr">{order.customerPhone}</td>
                             <td className="p-4 text-on-surface-muted">{new Date(order.createdAt).toLocaleString()}</td>
                             <td className="p-4 font-bold text-on-surface">${order.totalAmount.toFixed(2)}</td>

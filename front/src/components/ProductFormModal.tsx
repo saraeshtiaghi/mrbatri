@@ -1,149 +1,161 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import type { Product } from '@/lib/db';
+import { useState, useEffect } from 'react';
+import imageCompression from 'browser-image-compression';
+import { apiClient } from '@/lib/axios';
+import { Product } from '@/lib/db';
 
-interface ProductFormModalProps {
+interface Props {
     isOpen: boolean;
     onClose: () => void;
     productToEdit: Product | null;
-    onSuccess: () => void; // Added to trigger a table refresh
+    onSuccess: () => void;
 }
 
-export default function ProductFormModal({ isOpen, onClose, productToEdit, onSuccess }: ProductFormModalProps) {
+export default function ProductFormModal({ isOpen, onClose, productToEdit, onSuccess }: Props) {
     const [name, setName] = useState('');
-    const [price, setPrice] = useState<number | string>('');
+    const [price, setPrice] = useState('');
     const [category, setCategory] = useState('Mobile');
-    const [imageUrl, setImageUrl] = useState('');
     const [description, setDescription] = useState('');
-    const [isPending, setIsPending] = useState(false);
+    const [imageUrl, setImageUrl] = useState('');
 
+    const [isUploading, setIsUploading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    // Pre-fill the form if we are editing an existing product
     useEffect(() => {
         if (productToEdit) {
             setName(productToEdit.name);
-            setPrice(productToEdit.price);
+            setPrice(productToEdit.price.toString());
             setCategory(productToEdit.category);
-            setImageUrl(productToEdit.imageUrl);
             setDescription(productToEdit.description);
+            setImageUrl(productToEdit.imageUrl);
         } else {
-            setName('');
-            setPrice('');
-            setCategory('Mobile');
-            setImageUrl('');
-            setDescription('');
+            // Reset form for a new product
+            setName(''); setPrice(''); setCategory('Mobile');
+            setDescription(''); setImageUrl('');
         }
+        setError('');
     }, [productToEdit, isOpen]);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        setError('');
+        try {
+            // 1. Compress
+            const compressedFile = await imageCompression(file, {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1080,
+                useWebWorker: true,
+                fileType: 'image/webp'
+            });
+
+            // 2. Prepare Form Data
+            const formData = new FormData();
+            formData.append('file', compressedFile, compressedFile.name);
+
+            // 3. Upload via Proxy
+            const response = await apiClient.post('/upload/image', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' } // Axios needs this here
+            });
+
+            // 4. Save the MinIO URL
+            setImageUrl(response.data.imageUrl);
+        } catch (err) {
+            setError('Failed to upload image. Please try again.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsPending(true);
+        setIsSaving(true);
+        setError('');
 
-        const payload = {
+        const productData = {
             name,
-            price: Number(price),
+            price: parseFloat(price),
             category,
-            imageUrl,
             description,
+            imageUrl
         };
 
         try {
-            let res;
             if (productToEdit) {
-                // UPDATE (PUT)
-                res = await fetch(`/api/products/${productToEdit.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
+                // Update existing
+                await apiClient.put(`/products/${productToEdit.id}`, productData);
             } else {
-                // CREATE (POST)
-                res = await fetch('/api/products', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
+                // Create new
+                await apiClient.post('/products', productData);
             }
-
-            if (!res.ok) throw new Error('Failed to save product');
-
             onSuccess(); // Refresh the table
             onClose();   // Close the modal
-        } catch (err) {
-            alert('An error occurred while saving the product.');
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to save product.');
         } finally {
-            setIsPending(false);
+            setIsSaving(false);
         }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
-            <div className="relative bg-surface border border-outline rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-in zoom-in-95 duration-200">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-black text-on-surface">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-surface w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="p-6 border-b border-outline flex justify-between items-center">
+                    <h2 className="text-xl font-black text-on-surface">
                         {productToEdit ? 'Edit Product' : 'Add New Product'}
                     </h2>
-                    <button onClick={onClose} className="text-on-surface-muted hover:text-error transition-colors cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                    <button onClick={onClose} className="text-on-surface-muted hover:text-error font-bold">✕</button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                    <div>
-                        <label className="block text-sm font-bold text-on-surface mb-1">Product Name</label>
-                        <input required type="text" value={name} onChange={(e) => setName(e.target.value)}
-                               className="w-full p-3 bg-surface-variant border border-outline rounded-xl text-on-surface focus:ring-2 focus:ring-primary outline-none"
-                        />
-                    </div>
+                <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
+                    {error && <div className="p-3 bg-error/10 text-error rounded-lg text-sm font-bold">{error}</div>}
 
-                    <div className="flex gap-4">
-                        <div className="flex-1">
-                            <label className="block text-sm font-bold text-on-surface mb-1">Price ($)</label>
-                            <input required type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} dir="ltr"
-                                   className="w-full p-3 bg-surface-variant border border-outline rounded-xl text-on-surface focus:ring-2 focus:ring-primary outline-none"
-                            />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm font-bold text-on-surface">Product Name</label>
+                            <input required value={name} onChange={e => setName(e.target.value)} className="p-3 bg-surface-variant rounded-xl border border-outline outline-none focus:border-primary" />
                         </div>
-                        <div className="flex-1">
-                            <label className="block text-sm font-bold text-on-surface mb-1">Category</label>
-                            <select value={category} onChange={(e) => setCategory(e.target.value)}
-                                    className="w-full p-3 bg-surface-variant border border-outline rounded-xl text-on-surface focus:ring-2 focus:ring-primary outline-none cursor-pointer"
-                            >
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm font-bold text-on-surface">Price ($)</label>
+                            <input required type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="p-3 bg-surface-variant rounded-xl border border-outline outline-none focus:border-primary" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm font-bold text-on-surface">Category</label>
+                            <select value={category} onChange={e => setCategory(e.target.value)} className="p-3 bg-surface-variant rounded-xl border border-outline outline-none focus:border-primary">
                                 <option value="Mobile">Mobile</option>
                                 <option value="Laptop">Laptop</option>
+                                <option value="Accessory">Accessory</option>
                             </select>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm font-bold text-on-surface">Product Image</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                disabled={isUploading}
+                                className="p-2 text-sm text-on-surface-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                            />
+                            {isUploading && <span className="text-xs text-primary font-bold animate-pulse">Compressing & Uploading...</span>}
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-on-surface mb-1">Image URL</label>
-                        <input required type="text" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} dir="ltr" placeholder="https://..."
-                               className="w-full p-3 bg-surface-variant border border-outline rounded-xl text-on-surface focus:ring-2 focus:ring-primary outline-none text-sm"
-                        />
+                    <div className="flex flex-col gap-1">
+                        <label className="text-sm font-bold text-on-surface">Description</label>
+                        <textarea required value={description} onChange={e => setDescription(e.target.value)} rows={4} className="p-3 bg-surface-variant rounded-xl border border-outline outline-none focus:border-primary resize-none" />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-on-surface mb-1">Description</label>
-                        <textarea required rows={3} value={description} onChange={(e) => setDescription(e.target.value)}
-                                  className="w-full p-3 bg-surface-variant border border-outline rounded-xl text-on-surface focus:ring-2 focus:ring-primary outline-none resize-none"
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-outline">
-                        <button type="button" onClick={onClose} disabled={isPending}
-                                className="px-6 py-3 text-on-surface-muted hover:bg-surface-variant font-bold rounded-xl transition-colors cursor-pointer"
-                        >
-                            Cancel
-                        </button>
-                        <button type="submit" disabled={isPending}
-                                className="px-6 py-3 bg-primary hover:bg-primary-variant text-on-primary font-bold rounded-xl transition-colors shadow-md disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-                        >
-                            {isPending && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
-                            {productToEdit ? 'Save Changes' : 'Create Product'}
+                    <div className="flex justify-end gap-3 mt-4">
+                        <button type="button" onClick={onClose} className="px-6 py-3 bg-surface-variant hover:bg-outline font-bold rounded-xl transition-colors">Cancel</button>
+                        <button type="submit" disabled={isSaving || isUploading || !imageUrl} className="px-6 py-3 bg-primary hover:bg-primary-variant text-on-primary font-bold rounded-xl transition-colors disabled:opacity-50">
+                            {isSaving ? 'Saving...' : 'Save Product'}
                         </button>
                     </div>
                 </form>

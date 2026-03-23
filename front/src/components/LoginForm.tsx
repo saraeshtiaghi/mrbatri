@@ -88,7 +88,7 @@ export default function LoginForm({ lang }: LoginFormProps) {
             const data = await res.json();
 
             // SUCCESS! Save to Zustand
-            login(data.user, data.token);
+            login(data.user);
 
             // Redirection logic is automatically handled by the useEffect above!
         } catch (err: any) {

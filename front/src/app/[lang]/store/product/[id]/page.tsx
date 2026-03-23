@@ -1,24 +1,32 @@
-import { notFound } from 'next/navigation';
+import {notFound} from 'next/navigation';
 import Image from 'next/image'; // PRO TIP: Using the optimized Image component!
 import Link from 'next/link';
 
-import { getDictionary } from '@/lib/dictionaries'; // PRO TIP: Clean alias imports!
-import { mockProducts } from '@/lib/db';
+import {getDictionary} from '@/lib/dictionaries';
+import {Product} from '@/lib/db';
 import Header from '@/components/Header';
 import CartDrawer from '@/components/CartDrawer';
 import AddToCartButton from '@/components/AddToCartButton';
+import {Metadata} from "next";
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
+
+// Helper function to fetch single product
+async function getProduct(id: string): Promise<Product | null> {
+    const res = await fetch(`${BACKEND_URL}/api/products/${id}`, {cache: 'no-store'});
+    if (!res.ok) return null;
+    return res.json();
+}
 
 // 1. DYNAMIC SEO METADATA
-export async function generateMetadata({
-                                           params,
-                                       }: {
-    params: Promise<{ lang: 'en' | 'fa'; id: string }>;
-}) {
-    const { id, lang } = await params;
-    const product = mockProducts.find((p) => p.id === Number(id));
+export async function generateMetadata({params}: {
+    params: Promise<{ lang: 'en' | 'fa'; id: string }>
+}): Promise<Metadata> {
+    const {id} = await params;
+    const product = await getProduct(id);
 
     if (!product) {
-        return { title: 'Product Not Found | BATRISTORE' };
+        return {title: 'Product Not Found | BATRISTORE'};
     }
 
     return {
@@ -28,26 +36,21 @@ export async function generateMetadata({
 }
 
 // 2. THE SERVER COMPONENT
-export default async function ProductDetailPage({
-                                                    params,
-                                                }: {
-    params: Promise<{ lang: 'en' | 'fa'; id: string }>;
-}) {
-    const { lang, id } = await params;
+export default async function ProductDetailPage({params}: { params: Promise<{ lang: 'en' | 'fa'; id: string }> }) {
+    const {lang, id} = await params;
     const dict = await getDictionary(lang);
 
-    // Fetch the specific product directly from our database/mock
-    const product = mockProducts.find((p) => p.id === Number(id));
+    const product = await getProduct(id);
 
-    // PRO TIP: If the user types a bad ID in the URL, trigger the Next.js 404 page!
     if (!product) {
         notFound();
     }
 
     return (
-        <div className="min-h-screen bg-background text-on-background font-sans transition-colors duration-300 flex flex-col">
-            <CartDrawer lang={lang} dict={dict} />
-            <Header lang={lang} dict={dict} />
+        <div
+            className="min-h-screen bg-background text-on-background font-sans transition-colors duration-300 flex flex-col">
+            <CartDrawer lang={lang} dict={dict}/>
+            <Header lang={lang} dict={dict}/>
 
             <main className="flex-1 max-w-7xl mx-auto px-4 py-8 md:py-16 w-full">
 
@@ -55,7 +58,8 @@ export default async function ProductDetailPage({
                 <nav className="flex text-sm text-on-surface-muted mb-8">
                     <Link href={`/${lang}`} className="hover:text-primary transition-colors">{dict.nav.home}</Link>
                     <span className="mx-2">/</span>
-                    <Link href={`/${lang}/store`} className="hover:text-primary transition-colors">{dict.nav.products}</Link>
+                    <Link href={`/${lang}/store`}
+                          className="hover:text-primary transition-colors">{dict.nav.products}</Link>
                     <span className="mx-2">/</span>
                     <span className="text-on-surface">{product.name}</span>
                 </nav>
@@ -63,7 +67,8 @@ export default async function ProductDetailPage({
                 <div className="flex flex-col md:flex-row gap-8 lg:gap-16">
 
                     {/* Left Column: Product Image */}
-                    <div className="w-full md:w-1/2 flex justify-center items-center bg-surface-variant rounded-3xl p-8 border border-outline relative aspect-square">
+                    <div
+                        className="w-full md:w-1/2 flex justify-center items-center bg-surface-variant rounded-3xl p-8 border border-outline relative aspect-square">
                         {/* PRO TIP: Next.js <Image> requires either width/height OR 'fill'.
                             Using 'fill' and 'object-contain' makes it fully responsive!
                         */}
@@ -105,13 +110,15 @@ export default async function ProductDetailPage({
                         {/* Trust Badges */}
                         <div className="mt-12 grid grid-cols-2 gap-4 border-t border-outline pt-8">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-success/10 text-success rounded-full flex items-center justify-center shrink-0">
+                                <div
+                                    className="w-10 h-10 bg-success/10 text-success rounded-full flex items-center justify-center shrink-0">
                                     ✓
                                 </div>
                                 <span className="text-sm font-bold text-on-surface">1 Year Warranty</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0">
+                                <div
+                                    className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0">
                                     📦
                                 </div>
                                 <span className="text-sm font-bold text-on-surface">Fast Shipping</span>

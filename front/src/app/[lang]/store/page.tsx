@@ -1,12 +1,14 @@
 import {getDictionary} from '@/lib/dictionaries';
-import {mockProducts} from '@/lib/db';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import CartDrawer from '@/components/CartDrawer';
 import ProductCard from '@/components/ProductCard';
 import SortDropdown from '@/components/SortDropdown';
+import {Product} from '@/lib/db'; // Keep your interface! Just don't import mockProducts
 
-export default async function StorePage({params, searchParams,}: {
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
+
+export default async function StorePage({params, searchParams}: {
     params: Promise<{ lang: 'en' | 'fa' }>;
     searchParams: Promise<{ q?: string; category?: string; sort?: string }>;
 }) {
@@ -14,9 +16,10 @@ export default async function StorePage({params, searchParams,}: {
     const {q, category = 'all', sort = 'newest'} = await searchParams;
     const dict = await getDictionary(lang);
 
-    // 1. Filtering Logic
-    let products = [...mockProducts];
+    const res = await fetch(`${BACKEND_URL}/api/products`, {cache: 'no-store'});
+    let products: Product[] = res.ok ? await res.json() : [];
 
+    // 1. Filtering Logic
     if (q) {
         const query = q.toLowerCase();
         products = products.filter(p =>
@@ -42,7 +45,7 @@ export default async function StorePage({params, searchParams,}: {
             <Header lang={lang} dict={dict}/>
 
             <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-8 w-full">
-                <Sidebar products={mockProducts} selectedCategory={category} lang={lang} dict={dict}/>
+                <Sidebar products={products} selectedCategory={category} lang={lang} dict={dict}/>
 
                 <div className="flex-1">
                     <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -54,7 +57,6 @@ export default async function StorePage({params, searchParams,}: {
                                 {products.length} {lang === 'fa' ? 'محصول پیدا شد' : 'products found'}
                             </p>
                         </div>
-
                         <SortDropdown currentSort={sort} lang={lang}/>
                     </div>
 

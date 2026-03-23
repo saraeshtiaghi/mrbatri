@@ -1,20 +1,25 @@
-import {NextResponse} from 'next/server';
-import {mockOrders} from '@/lib/db';
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
-export async function PUT(request: Request, {params}: { params: Promise<{ id: string }> }) {
-    const {id} = await params;
-    const {status} = await request.json();
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
-    const order = mockOrders.find(o => o.id === id);
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const body = await request.json();
 
-    if (!order) {
-        return NextResponse.json({message: 'Order not found'}, {status: 404});
-    }
+    // Secure extraction
+    const cookieStore = await cookies();
+    const token = cookieStore.get('jwt_token')?.value;
 
-    // Update the status in our "real" mock database
-    order.status = status;
+    const backendRes = await fetch(`${BACKEND_URL}/api/orders/${id}/status`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify(body), // Forward the { status: "Shipped" } payload
+    });
 
-    console.log(`[ADMIN] Order #${id} updated to: ${status}`);
-
-    return NextResponse.json(order);
+    const data = await backendRes.json();
+    return NextResponse.json(data, { status: backendRes.status });
 }

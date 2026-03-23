@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {useState, useEffect} from "react";
 import Image from "next/image";
-import type { Product } from '@/lib/db';
+import type {Product} from '@/lib/db';
 import ProductFormModal from '@/components/ProductFormModal';
+import {apiClient} from '@/lib/axios'; // <-- Import your Axios client!
 
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
@@ -14,16 +15,14 @@ export default function AdminProductsPage() {
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
-    // Replaces React Query's useQuery
     const fetchProducts = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/products');
-            if (!response.ok) throw new Error('Failed to fetch products');
-            const data = await response.json();
-            setProducts(data);
+            // Use apiClient instead of native fetch
+            const response = await apiClient.get('/products');
+            setProducts(response.data);
         } catch (err: any) {
-            setError(err.message);
+            setError(err.response?.data?.message || err.message);
         } finally {
             setIsLoading(false);
         }
@@ -43,19 +42,16 @@ export default function AdminProductsPage() {
         setIsModalOpen(true);
     };
 
-    // Replaces React Query's useMutation
     const handleDelete = async (id: number, name: string) => {
-        if (!window.confirm(`Are you sure you want to delete ${name}? This cannot be undone.`)) return;
+        if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
 
         setIsDeleting(id);
         try {
-            const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Failed to delete');
-
-            // Refresh the table
+            // Use apiClient to ensure the Admin JWT token is sent!
+            await apiClient.delete(`/products/${id}`);
             fetchProducts();
-        } catch (err) {
-            alert('Failed to delete product');
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to delete product');
         } finally {
             setIsDeleting(null);
         }
@@ -65,8 +61,10 @@ export default function AdminProductsPage() {
     if (error) return <div className="p-8 text-error">Error loading products.</div>;
 
     return (
-        <div className="bg-surface border border-outline rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-6 border-b border-outline flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div
+            className="bg-surface border border-outline rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div
+                className="p-6 border-b border-outline flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-black text-on-surface">Products</h2>
                     <p className="text-sm text-on-surface-muted">Manage your battery inventory</p>
@@ -76,8 +74,9 @@ export default function AdminProductsPage() {
                     onClick={handleCreateNew}
                     className="px-6 py-3 bg-primary hover:bg-primary-variant text-on-primary font-bold rounded-xl transition-colors shadow-md flex items-center gap-2 text-sm cursor-pointer"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
                     </svg>
                     Add New Product
                 </button>
@@ -100,7 +99,8 @@ export default function AdminProductsPage() {
                             <td className="p-4">
                                 <div className="relative w-16 h-16 bg-surface-variant rounded-xl p-2 shrink-0">
                                     {/* PRO TIP: unoptimized lets admins paste any URL without crashing Next.js */}
-                                    <Image src={product.imageUrl} alt={product.name} fill unoptimized className="object-contain mix-blend-multiply p-1" />
+                                    <Image src={product.imageUrl} alt={product.name} fill unoptimized
+                                           className="object-contain mix-blend-multiply p-1"/>
                                 </div>
                             </td>
                             <td className="p-4">
@@ -115,7 +115,8 @@ export default function AdminProductsPage() {
                             </td>
                             <td className="p-4 text-end">
                                 <div className="flex justify-end gap-4 items-center">
-                                    <button onClick={() => handleEdit(product)} className="text-primary hover:text-primary-variant font-black transition-colors cursor-pointer">
+                                    <button onClick={() => handleEdit(product)}
+                                            className="text-primary hover:text-primary-variant font-black transition-colors cursor-pointer">
                                         Edit
                                     </button>
                                     <button

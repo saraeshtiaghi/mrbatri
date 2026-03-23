@@ -1,42 +1,34 @@
 import { NextResponse } from 'next/server';
-import { mockProducts } from '@/lib/db';
+import { cookies } from 'next/headers';
 
-// PRO TIP: In Next.js, you name the function after the HTTP method (GET, POST, PUT, DELETE)
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
+
+async function getAuthHeader() {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('jwt_token')?.value;
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 export async function GET(request: Request) {
-    // 1. Simulate network delay (just like we did in MSW)
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // 2. Extract the URL and search parameters
     const { searchParams } = new URL(request.url);
-    const q = searchParams.get('q')?.toLowerCase();
-
-    let results = mockProducts;
-
-    // 3. Handle the search logic
-    if (q) {
-        results = results.filter((p) =>
-            p.name.toLowerCase().includes(q) ||
-            p.description.toLowerCase().includes(q)
-        );
-    }
-
-    // 4. Return the data as a JSON response
-    return NextResponse.json(results);
+    const backendRes = await fetch(`${BACKEND_URL}/api/products?${searchParams.toString()}`);
+    const data = await backendRes.json();
+    return NextResponse.json(data, { status: backendRes.status });
 }
 
 export async function POST(request: Request) {
     const body = await request.json();
+    const authHeader = await getAuthHeader(); // Secure extraction
 
-    const newProduct = {
-        id: Math.floor(Math.random() * 10000), // Generate random ID
-        name: body.name,
-        price: body.price,
-        category: body.category,
-        imageUrl: body.imageUrl,
-        description: body.description,
-        createdAt: new Date().toISOString(),
-    };
+    const backendRes = await fetch(`${BACKEND_URL}/api/products`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...authHeader
+        },
+        body: JSON.stringify(body),
+    });
 
-    mockProducts.unshift(newProduct);
-    return NextResponse.json(newProduct, { status: 201 });
+    const data = await backendRes.json();
+    return NextResponse.json(data, { status: backendRes.status });
 }

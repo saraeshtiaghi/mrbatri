@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { apiClient } from '@/lib/axios'; // Use your configured axios!
 
 export default function CheckoutForm({ lang, dict }: { lang: string; dict: any }) {
     const router = useRouter();
@@ -14,13 +15,16 @@ export default function CheckoutForm({ lang, dict }: { lang: string; dict: any }
     const [mounted, setMounted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Form States
+    const [fullName, setFullName] = useState('');
+    const [address, setAddress] = useState('');
+
     const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    // PRO TIP: Security Check
     useEffect(() => {
         if (mounted) {
             if (!isAuthenticated) {
@@ -37,23 +41,27 @@ export default function CheckoutForm({ lang, dict }: { lang: string; dict: any }
         e.preventDefault();
         setIsSubmitting(true);
 
-        try {
-            const res = await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    phone: user?.phone,
-                    total: totalPrice,
-                    items: items
-                }),
-            });
+        // SECURE PAYLOAD: No prices, no total amount! Just IDs and quantities.
+        const orderPayload = {
+            phone: user?.phone,
+            fullName: fullName,
+            address: address,
+            items: items.map(item => ({
+                productId: item.id,
+                quantity: item.quantity
+            }))
+        };
 
-            if (!res.ok) throw new Error();
+        try {
+            // Your browser will automatically send the HttpOnly cookie to this Next.js route
+            const res = await apiClient.post('/orders', orderPayload);
+
+            if (res.status !== 200) throw new Error();
 
             clearCart();
-            router.push(`/${lang}/my-orders`); // Go straight to the real history!
+            router.push(`/${lang}/my-orders`);
         } catch (err) {
-            alert('Failed to place order');
+            alert('Failed to place order. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -61,7 +69,6 @@ export default function CheckoutForm({ lang, dict }: { lang: string; dict: any }
 
     return (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left: Shipping Form */}
             <div className="lg:col-span-8 space-y-6">
                 <div className="bg-surface p-6 rounded-2xl border border-outline">
                     <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -74,6 +81,8 @@ export default function CheckoutForm({ lang, dict }: { lang: string; dict: any }
                             <label className="text-sm font-bold">{dict.checkout.fullName}</label>
                             <input
                                 required
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
                                 className="p-3 bg-surface-variant border border-outline rounded-xl outline-none focus:ring-2 focus:ring-primary"
                                 placeholder="John Doe"
                             />
@@ -82,7 +91,7 @@ export default function CheckoutForm({ lang, dict }: { lang: string; dict: any }
                             <label className="text-sm font-bold">Phone</label>
                             <input
                                 disabled
-                                value={user?.phone}
+                                value={user?.phone || ''}
                                 className="p-3 bg-surface-variant border border-outline rounded-xl opacity-60"
                             />
                         </div>
@@ -90,6 +99,8 @@ export default function CheckoutForm({ lang, dict }: { lang: string; dict: any }
                             <label className="text-sm font-bold">{dict.checkout.address}</label>
                             <textarea
                                 required
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
                                 rows={3}
                                 className="p-3 bg-surface-variant border border-outline rounded-xl outline-none focus:ring-2 focus:ring-primary"
                             />
@@ -98,7 +109,6 @@ export default function CheckoutForm({ lang, dict }: { lang: string; dict: any }
                 </div>
             </div>
 
-            {/* Right: Order Summary */}
             <div className="lg:col-span-4">
                 <div className="bg-surface p-6 rounded-2xl border border-outline sticky top-24">
                     <h2 className="text-xl font-bold mb-6">{dict.checkout.summary}</h2>

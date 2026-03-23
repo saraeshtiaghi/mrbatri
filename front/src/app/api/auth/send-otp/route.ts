@@ -12,17 +12,13 @@ export async function POST(request: Request) {
             body: JSON.stringify(body),
         });
 
-        const data = await backendRes.json();
-
         if (!backendRes.ok) {
             return NextResponse.json(
-                { message: data.message || 'Failed to send OTP' },
+                { message: backendRes.body || 'Failed to send OTP' },
                 { status: backendRes.status }
             );
         }
-
-        return NextResponse.json(data);
-
+        return backendRes
     } catch (error) {
         console.error("Backend connection error:", error);
         return NextResponse.json(

@@ -1,14 +1,27 @@
 import {getDictionary} from '@/lib/dictionaries';
 import Header from '@/components/Header';
+import {cookies} from 'next/headers';
 import {Order, OrderItem, OrderStatus} from "@/lib/db";
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
 export default async function MyOrdersPage({params}: { params: Promise<{ lang: 'en' | 'fa' }> }) {
     const {lang} = await params;
     const dict = await getDictionary(lang);
 
-    // In a real app, you'd pass a JWT token from cookies here
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/orders`, {cache: 'no-store'});
-    const orders = await res.json();
+    // Grab the token from cookies during Server-Side Rendering
+    const cookieStore = await cookies();
+    const token = cookieStore.get('jwt_token')?.value;
+
+    // Fetch directly from Spring Boot securely!
+    const res = await fetch(`${BACKEND_URL}/api/orders`, {
+        cache: 'no-store',
+        headers: {
+            ...(token && {'Authorization': `Bearer ${token}`})
+        }
+    });
+
+    const orders: Order[] = res.ok ? await res.json() : [];
 
     const statusMap: Record<OrderStatus, string> = {
         Delivered: lang === 'fa' ? 'تحویل شده' : 'Delivered',

@@ -3,7 +3,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Define the roles available in our system
 export type Role = 'ADMIN' | 'USER' | null;
 
 interface User {
@@ -15,10 +14,9 @@ interface User {
 interface AuthState {
     isAuthenticated: boolean;
     user: User | null;
-    token: string | null;
 
-    // Actions
-    login: (user: User, token: string) => void;
+    // Notice: The token is completely gone!
+    login: (user: User) => void;
     logout: () => void;
 }
 
@@ -27,24 +25,32 @@ export const useAuthStore = create<AuthState>()(
         (set) => ({
             isAuthenticated: false,
             user: null,
-            token: null,
 
-            // Call this after the OTP is successfully verified
-            login: (user, token) => set({
+            // We only save the user data now. The browser cookie holds the token.
+            login: (user) => set({
                 isAuthenticated: true,
-                user,
-                token
+                user
             }),
 
-            // Call this when the user clicks "Log out"
-            logout: () => set({
-                isAuthenticated: false,
-                user: null,
-                token: null
-            }),
+            logout: async () => {
+                try {
+                    // Hit the proxy to kill the cookie
+                    await fetch('/api/auth/logout', { method: 'POST' });
+                } catch (err) {
+                    console.error("Cookie cleanup failed", err);
+                } finally {
+                    // Always clear the local UI state regardless
+                    set({
+                        isAuthenticated: false,
+                        user: null,
+                    });
+                    // Optional: Redirect to home or login
+                    window.location.href = '/';
+                }
+            },
         }),
         {
-            name: 'batristore-auth', // Saves their session to LocalStorage so they stay logged in!
+            name: 'batristore-auth',
         }
     )
 );

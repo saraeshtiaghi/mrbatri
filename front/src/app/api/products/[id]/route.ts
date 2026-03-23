@@ -1,24 +1,46 @@
 import { NextResponse } from 'next/server';
-import { mockProducts } from '@/lib/db';
+import { cookies } from 'next/headers';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
+
+async function getAuthHeader() {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('jwt_token')?.value;
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const body = await request.json();
-    const index = mockProducts.findIndex(p => p.id === Number(id));
+    const authHeader = await getAuthHeader();
 
-    if (index === -1) return NextResponse.json({ message: 'Not Found' }, { status: 404 });
+    const backendRes = await fetch(`${BACKEND_URL}/api/products/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            ...authHeader
+        },
+        body: JSON.stringify(body),
+    });
 
-    // Update the mock database
-    mockProducts[index] = { ...mockProducts[index], ...body };
-    return NextResponse.json(mockProducts[index]);
+    const data = await backendRes.json();
+    return NextResponse.json(data, { status: backendRes.status });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const index = mockProducts.findIndex(p => p.id === Number(id));
+    const authHeader = await getAuthHeader();
 
-    if (index === -1) return NextResponse.json({ message: 'Not Found' }, { status: 404 });
+    const backendRes = await fetch(`${BACKEND_URL}/api/products/${id}`, {
+        method: 'DELETE',
+        headers: {
+            ...authHeader
+        }
+    });
 
-    mockProducts.splice(index, 1);
-    return NextResponse.json({ message: 'Deleted' });
+    if (backendRes.status === 204) {
+        return NextResponse.json({ message: 'Deleted' }, { status: 200 });
+    }
+
+    return NextResponse.json({ message: 'Failed to delete' }, { status: backendRes.status });
 }
