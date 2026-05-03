@@ -9,24 +9,25 @@ interface User {
     id: number;
     phone: string;
     role: Role;
+    fullName?: string | null;
+    savedAddress?: string | null;
 }
 
 interface AuthState {
     isAuthenticated: boolean;
     user: User | null;
 
-    // Notice: The token is completely gone!
     login: (user: User) => void;
     logout: () => void;
+    updateProfile: (fullName: string | null, savedAddress: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             isAuthenticated: false,
             user: null,
 
-            // We only save the user data now. The browser cookie holds the token.
             login: (user) => set({
                 isAuthenticated: true,
                 user
@@ -34,19 +35,19 @@ export const useAuthStore = create<AuthState>()(
 
             logout: async () => {
                 try {
-                    // Hit the proxy to kill the cookie
                     await fetch('/api/auth/logout', { method: 'POST' });
                 } catch (err) {
                     console.error("Cookie cleanup failed", err);
                 } finally {
-                    // Always clear the local UI state regardless
-                    set({
-                        isAuthenticated: false,
-                        user: null,
-                    });
-                    // Optional: Redirect to home or login
+                    set({ isAuthenticated: false, user: null });
                     window.location.href = '/';
                 }
+            },
+
+            updateProfile: (fullName, savedAddress) => {
+                const current = get().user;
+                if (!current) return;
+                set({ user: { ...current, fullName, savedAddress } });
             },
         }),
         {
