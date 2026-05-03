@@ -48,6 +48,7 @@ class ProductController(
             existingProduct.category = updatedProduct.category
             existingProduct.imageUrl = updatedProduct.imageUrl
             existingProduct.description = updatedProduct.description
+            existingProduct.stock = updatedProduct.stock
 
             val saved = productRepository.save(existingProduct)
             ResponseEntity.ok(saved)

@@ -6,6 +6,7 @@ import com.mrbatri.backend.user.UserRole
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.Authentication
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.math.BigDecimal
 import java.util.UUID
@@ -19,6 +20,7 @@ class OrderController(
 ) {
 
     @PostMapping
+    @Transactional
     fun createOrder(
         @RequestBody request: CreateOrderRequest,
         authentication: Authentication
@@ -48,6 +50,16 @@ class OrderController(
             if (product == null) {
                 return ResponseEntity.badRequest().body("Product ID ${itemRequest.productId} not found.")
             }
+
+            // Stock check
+            if (product.stock < itemRequest.quantity) {
+                return ResponseEntity.badRequest()
+                    .body("Not enough stock for '${product.name}'. Available: ${product.stock}, requested: ${itemRequest.quantity}.")
+            }
+
+            // Deduct stock
+            product.stock -= itemRequest.quantity
+            productRepository.save(product)
 
             // Calculate exact math on the server
             val itemTotal = product.price.multiply(BigDecimal(itemRequest.quantity))

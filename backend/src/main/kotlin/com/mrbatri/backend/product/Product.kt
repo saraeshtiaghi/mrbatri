@@ -30,6 +30,9 @@ class Product(
     @Column(columnDefinition = "TEXT", nullable = false)
     var description: String,
 
+    @Column(nullable = false)
+    var stock: Int = 0,
+
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
 )
