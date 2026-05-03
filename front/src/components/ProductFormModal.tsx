@@ -15,6 +15,7 @@ interface Props {
 export default function ProductFormModal({ isOpen, onClose, productToEdit, onSuccess }: Props) {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
+    const [stock, setStock] = useState('0');
     const [category, setCategory] = useState('Mobile');
     const [description, setDescription] = useState('');
     const [imageUrl, setImageUrl] = useState('');
@@ -28,12 +29,13 @@ export default function ProductFormModal({ isOpen, onClose, productToEdit, onSuc
         if (productToEdit) {
             setName(productToEdit.name);
             setPrice(productToEdit.price.toString());
+            setStock(productToEdit.stock.toString());
             setCategory(productToEdit.category);
             setDescription(productToEdit.description);
             setImageUrl(productToEdit.imageUrl);
         } else {
             // Reset form for a new product
-            setName(''); setPrice(''); setCategory('Mobile');
+            setName(''); setPrice(''); setStock('0'); setCategory('Mobile');
             setDescription(''); setImageUrl('');
         }
         setError('');
@@ -80,6 +82,7 @@ export default function ProductFormModal({ isOpen, onClose, productToEdit, onSuc
         const productData = {
             name,
             price: parseFloat(price),
+            stock: parseInt(stock, 10),
             category,
             description,
             imageUrl
@@ -125,6 +128,10 @@ export default function ProductFormModal({ isOpen, onClose, productToEdit, onSuc
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-bold text-on-surface">Price ($)</label>
                             <input required type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="p-3 bg-surface-variant rounded-xl border border-outline outline-none focus:border-primary" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm font-bold text-on-surface">Stock (units)</label>
+                            <input required type="number" min="0" step="1" value={stock} onChange={e => setStock(e.target.value)} className="p-3 bg-surface-variant rounded-xl border border-outline outline-none focus:border-primary" />
                         </div>
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-bold text-on-surface">Category</label>

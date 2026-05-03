@@ -18,6 +18,16 @@ export default function ProductCard({ product, lang, addToCartText }: ProductCar
                     alt={product.name}
                     className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                 />
+                {product.stock === 0 && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-t-2xl">
+                        <span className="bg-error text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">Out of Stock</span>
+                    </div>
+                )}
+                {product.stock > 0 && product.stock <= 5 && (
+                    <div className="absolute top-2 right-2">
+                        <span className="bg-amber-500 text-white text-xs font-black px-2 py-1 rounded-full">Only {product.stock} left</span>
+                    </div>
+                )}
             </Link>
 
             <div className="p-5 flex flex-col flex-1">

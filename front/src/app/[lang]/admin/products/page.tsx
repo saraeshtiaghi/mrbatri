@@ -89,6 +89,7 @@ export default function AdminProductsPage() {
                         <th className="p-4 text-start font-bold border-b border-outline">Image</th>
                         <th className="p-4 text-start font-bold border-b border-outline">Name & Category</th>
                         <th className="p-4 text-start font-bold border-b border-outline">Price</th>
+                        <th className="p-4 text-start font-bold border-b border-outline">Stock</th>
                         <th className="p-4 text-start font-bold border-b border-outline">Date Added</th>
                         <th className="p-4 text-end font-bold border-b border-outline">Actions</th>
                     </tr>
@@ -109,6 +110,17 @@ export default function AdminProductsPage() {
                             </td>
                             <td className="p-4 font-black text-on-surface text-base">
                                 ${product.price.toFixed(2)}
+                            </td>
+                            <td className="p-4">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black ${
+                                    product.stock === 0
+                                        ? 'bg-error/10 text-error'
+                                        : product.stock <= 5
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-green-100 text-green-700'
+                                }`}>
+                                    {product.stock === 0 ? 'Out of Stock' : `${product.stock} units`}
+                                </span>
                             </td>
                             <td className="p-4 text-on-surface-muted font-medium">
                                 {new Date(product.createdAt).toLocaleDateString()}
@@ -132,7 +144,7 @@ export default function AdminProductsPage() {
                     ))}
                     {products.length === 0 && (
                         <tr>
-                            <td colSpan={5} className="p-8 text-center text-on-surface-muted font-bold">
+                            <td colSpan={6} className="p-8 text-center text-on-surface-muted font-bold">
                                 No products found. Click "Add New Product" to create one.
                             </td>
                         </tr>
